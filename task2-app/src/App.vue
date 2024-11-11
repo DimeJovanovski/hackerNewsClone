@@ -1,24 +1,7 @@
+<!-- App.vue -->
 <template>
   <div id="app">
-    <!-- Navbar -->
-    <nav class="navbar navbar-light px-3" style="background-color: orangered">
-      <a class="navbar-brand" href="/">Hacker News</a>
-      <form class="form-inline" @submit.prevent="onSearch">
-        <div class="input-group">
-          <input
-            v-model="searchQuery"
-            class="form-control"
-            type="search"
-            placeholder="Search stories by title, url or author"
-            aria-label="Search"
-          />
-          <div class="input-group-append">
-            <button class="btn bg-white mx-2" type="submit">Search</button>
-          </div>
-        </div>
-      </form>
-    </nav>
-
+    <AppBar v-model:searchQuery="searchQuery" @search="onSearch" />
     <div class="container">
       <RecentPosts :searchQuery="searchQuery" />
     </div>
@@ -27,10 +10,12 @@
 
 <script>
 import "@/styles.css";
+import AppBar from "./components/AppBar.vue";
 import RecentPosts from "./components/RecentPosts.vue";
 
 export default {
   components: {
+    AppBar,
     RecentPosts,
   },
   data() {
@@ -39,8 +24,8 @@ export default {
     };
   },
   methods: {
-    onSearch() {
-      // Triggers the search when the form is submitted
+    onSearch(query) {
+      this.searchQuery = query;
     },
   },
 };
