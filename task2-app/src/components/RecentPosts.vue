@@ -1,7 +1,7 @@
 <!-- components/RecentPosts.vue -->
 <template>
   <div class="container my-3 border-0">
-    <h3>Most recent</h3>
+    <h4>Most recent</h4>
     <ul class="list-group mb-4 border-0">
       <li
         v-for="(post, index) in posts"
@@ -10,20 +10,31 @@
       >
         <div>
           <!-- Post enumeration with progressive numbering -->
-          <div class="d-flex align-items-center">
+          <div class="d-flex flex-column flex-sm-row mb-1">
             <span class="me-2">{{ index + 1 + currentPage * hitsPerPage }}.</span>
             <div
               @click="toggleComments(post.objectID)"
-              class="font-weight-bold cursor-pointer post-title"
+              class="font-weight-bold post-title"
             >
-              {{ post.title }}
+              {{ post.title }} &nbsp;
             </div>
+            <!-- URL placed under the title on smaller screens using Bootstrap's responsive class -->
+            <a
+              :href="post.url"
+              target="_blank"
+              class="d-block d-sm-inline text-decoration-none mt-1 mt-sm-0"
+              style="font-size: 12px; color: #595858;"
+            >
+              {{ post.url }}
+            </a>
           </div>
 
           <!-- Author with Bootstrap user icon and total comment count -->
           <p class="mb-1" style="font-size: 14px; color: #595858;">
             <i>
               <i class="bi bi-person-fill"></i> {{ post.author }} &nbsp;
+              <i class="bi bi-alarm"></i> {{ formatDateAndTime(post.created_at).time }} &nbsp;
+              <i class="bi bi-calendar3-week"></i> {{ formatDateAndTime(post.created_at).date }} &nbsp; 
               <i class="bi bi-chat-fill"></i> {{ post.commentCount }}
             </i>
           </p>
@@ -34,9 +45,9 @@
           <div v-if="post.comments && post.comments.length > 0">
             <p>Comments</p>
             <ul class="list-group">
-              <!-- Display only the loaded comments, with lazy loading for more comments -->
+              <!-- Display only up to visibleCommentsCount, including nested replies -->
               <li
-                v-for="comment in post.comments.slice(0, post.loadedComments)"
+                v-for="comment in post.comments.slice(0, post.visibleCommentsCount)"
                 :key="comment.id"
                 class="list-group-item px-1 py-0 border-0 rounded-0 bg-light border-top"
               >
@@ -44,11 +55,11 @@
                   <i><i class="bi bi-person-fill"></i> {{ comment.author }}:</i><br />
                   {{ comment.text }}
                 </p>
-                <!-- Recursively render replies with left margin -->
+                <!-- Render replies, limited by visibleCommentsCount as well -->
                 <div v-if="comment.children && comment.children.length > 0" class="ms-3">
                   <ul class="list-group">
                     <li
-                      v-for="reply in comment.children"
+                      v-for="reply in comment.children.slice(0, post.visibleCommentsCount)"
                       :key="reply.id"
                       class="list-group-item px-1 py-0 border-0 rounded-0 bg-light border-top"
                     >
@@ -61,9 +72,9 @@
                 </div>
               </li>
             </ul>
-            <!-- 'Load more' link to fetch more comments -->
-            <div v-if="post.loadedComments < post.comments.length" @click="loadMoreComments(post)">
-              <a href="#" @click.prevent class="text-primary">More</a>
+            <!-- 'Show more' button to load more comments and replies -->
+            <div v-if="post.visibleCommentsCount < post.comments.length" @click="loadMoreComments(post)">
+              <a href="#" @click.prevent class="text-primary">Show more</a>
             </div>
           </div>
           <div v-else>
@@ -119,11 +130,11 @@ export default {
     async fetchPosts() {
       try {
         const response = await axios.get(
-          `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(this.searchQuery)}&tags=story&page=${this.currentPage}&hitsPerPage=${this.hitsPerPage}`
+          `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(this.searchQuery)}&tags=story&page=${this.currentPage}&hitsPerPage=${this.hitsPerPage}`
         );
         this.posts = response.data.hits;
 
-        // Count total comments for each post and add a default for loadedComments
+        // Count total comments for each post and add a default for visibleCommentsCount
         await Promise.all(
           this.posts.map(async (post) => {
             const details = await axios.get(
@@ -131,7 +142,7 @@ export default {
             );
             post.commentCount = this.countTotalComments(details.data.children);
             post.comments = this.extractComments(details.data.children);
-            post.loadedComments = 3; // Show only 3 comments initially
+            post.visibleCommentsCount = 3; // Show only 3 comments initially
           })
         );
 
@@ -176,7 +187,7 @@ export default {
       return comments;
     },
     loadMoreComments(post) {
-      post.loadedComments += 3;
+      post.visibleCommentsCount += 3;
     },
     changePage(page) {
       if (page >= 0 && (page < this.currentPage || this.hasMore)) {
@@ -184,16 +195,26 @@ export default {
         this.fetchPosts();
       }
     },
+    // Method to format date and time
+    formatDateAndTime(isoString) {
+      const date = new Date(isoString);
+      
+      // Format the date to dd.mm.yyyy
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const formattedDate = `${day}.${month}.${year}`;
+
+      // Format the time to military format (HH:mm)
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const formattedTime = `${hours}:${minutes}`;
+      
+      return { date: formattedDate, time: formattedTime };
+    },
   },
   created() {
     this.fetchPosts();
   },
 };
 </script>
-
-<style>
-.post-title {
-  cursor: pointer;
-  font-weight: bold;
-}
-</style>
