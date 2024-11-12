@@ -1,4 +1,3 @@
-<!-- components/RecentPosts.vue -->
 <template>
   <div class="container my-3 border-0">
     <h4>Most recent</h4>
@@ -99,122 +98,122 @@
 </template>
 
 <script>
-import axios from "axios";
+  import axios from "axios";
 
-export default {
-  props: {
-    searchQuery: {
-      type: String,
-      default: "",
-    },
-  },
-  data() {
-    return {
-      posts: [],
-      currentPage: 0,
-      hitsPerPage: 10,
-      hasMore: true,
-      expandedPostId: null, // To track which post is expanded
-    };
-  },
-  watch: {
-    searchQuery: {
-      handler() {
-        this.currentPage = 0;
-        this.fetchPosts();
+  export default {
+    props: {
+      searchQuery: {
+        type: String,
+        default: "",
       },
-      immediate: true,
     },
-  },
-  methods: {
-    async fetchPosts() {
-      try {
-        const response = await axios.get(
-          `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(this.searchQuery)}&tags=story&page=${this.currentPage}&hitsPerPage=${this.hitsPerPage}`
-        );
-        this.posts = response.data.hits;
-
-        // Count total comments for each post and add a default for visibleCommentsCount
-        await Promise.all(
-          this.posts.map(async (post) => {
-            const details = await axios.get(
-              `https://hn.algolia.com/api/v1/items/${post.objectID}`
-            );
-            post.commentCount = this.countTotalComments(details.data.children);
-            post.comments = this.extractComments(details.data.children);
-            post.visibleCommentsCount = 3; // Show only 3 comments initially
-          })
-        );
-
-        this.hasMore = response.data.hits.length > 0;
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      }
+    data() {
+      return {
+        posts: [],
+        currentPage: 0,
+        hitsPerPage: 10,
+        hasMore: true,
+        expandedPostId: null, // To track which post is expanded
+      };
     },
-    countTotalComments(children) {
-      let count = 0;
-      children.forEach((child) => {
-        if (child.type === "comment") {
-          count++;
-          if (child.children && child.children.length > 0) {
-            count += this.countTotalComments(child.children);
+    watch: {
+      searchQuery: {
+        handler() {
+          this.currentPage = 0;
+          this.fetchPosts();
+        },
+        immediate: true,
+      },
+    },
+    methods: {
+      async fetchPosts() {
+        try {
+          const response = await axios.get(
+            `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(this.searchQuery)}&tags=story&page=${this.currentPage}&hitsPerPage=${this.hitsPerPage}`
+          );
+          this.posts = response.data.hits;
+
+          // Count total comments for each post and add a default for visibleCommentsCount
+          await Promise.all(
+            this.posts.map(async (post) => {
+              const details = await axios.get(
+                `https://hn.algolia.com/api/v1/items/${post.objectID}`
+              );
+              post.commentCount = this.countTotalComments(details.data.children);
+              post.comments = this.extractComments(details.data.children);
+              post.visibleCommentsCount = 3; // Show only 3 comments initially
+            })
+          );
+
+          this.hasMore = response.data.hits.length > 0;
+        } catch (error) {
+          console.error("Error fetching posts:", error);
+        }
+      },
+      countTotalComments(children) {
+        let count = 0;
+        children.forEach((child) => {
+          if (child.type === "comment") {
+            count++;
+            if (child.children && child.children.length > 0) {
+              count += this.countTotalComments(child.children);
+            }
           }
+        });
+        return count;
+      },
+      async toggleComments(postId) {
+        // If the post is already expanded, collapse it
+        if (this.expandedPostId === postId) {
+          this.expandedPostId = null;
+        } else {
+          this.expandedPostId = postId;
         }
-      });
-      return count;
-    },
-    async toggleComments(postId) {
-      // If the post is already expanded, collapse it
-      if (this.expandedPostId === postId) {
-        this.expandedPostId = null;
-      } else {
-        this.expandedPostId = postId;
-      }
-    },
-    extractComments(children) {
-      const comments = [];
-      children.forEach((child) => {
-        if (child.type === "comment") {
-          const comment = {
-            id: child.id,
-            author: child.author,
-            text: child.text,
-            children: child.children ? this.extractComments(child.children) : [],
-          };
-          comments.push(comment);
+      },
+      extractComments(children) {
+        const comments = [];
+        children.forEach((child) => {
+          if (child.type === "comment") {
+            const comment = {
+              id: child.id,
+              author: child.author,
+              text: child.text,
+              children: child.children ? this.extractComments(child.children) : [],
+            };
+            comments.push(comment);
+          }
+        });
+        return comments;
+      },
+      loadMoreComments(post) {
+        post.visibleCommentsCount += 3;
+      },
+      changePage(page) {
+        if (page >= 0 && (page < this.currentPage || this.hasMore)) {
+          this.currentPage = page;
+          this.fetchPosts();
         }
-      });
-      return comments;
-    },
-    loadMoreComments(post) {
-      post.visibleCommentsCount += 3;
-    },
-    changePage(page) {
-      if (page >= 0 && (page < this.currentPage || this.hasMore)) {
-        this.currentPage = page;
-        this.fetchPosts();
-      }
-    },
-    // Method to format date and time
-    formatDateAndTime(isoString) {
-      const date = new Date(isoString);
-      
-      // Format the date to dd.mm.yyyy
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      const formattedDate = `${day}.${month}.${year}`;
+      },
+      // Method to format date and time
+      formatDateAndTime(isoString) {
+        const date = new Date(isoString);
+        
+        // Format the date to dd.mm.yyyy
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const formattedDate = `${day}.${month}.${year}`;
 
-      // Format the time to military format (HH:mm)
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      const formattedTime = `${hours}:${minutes}`;
-      
-      return { date: formattedDate, time: formattedTime };
+        // Format the time to military format (HH:mm)
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const formattedTime = `${hours}:${minutes}`;
+        
+        return { date: formattedDate, time: formattedTime };
+      },
     },
-  },
-  created() {
-    this.fetchPosts();
-  },
-};
+    created() {
+      this.fetchPosts();
+    },
+  };
 </script>

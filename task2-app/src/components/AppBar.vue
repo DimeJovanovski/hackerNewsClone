@@ -1,4 +1,3 @@
-<!-- components/AppBar.vue -->
 <template>
   <nav class="navbar navbar-light px-3" style="background-color: orangered">
     <a class="navbar-brand d-flex align-items-center" href="/">
@@ -26,40 +25,32 @@
 </template>
 
 <script>
-export default {
-  props: {
-    searchQuery: {
-      type: String,
-      required: true,
+  export default {
+    props: {
+      searchQuery: {
+        type: String,
+        required: true,
+      },
     },
-  },
-  data() {
-    return {
-      localSearchQuery: this.searchQuery, // local data to manage v-model
-    };
-  },
-  watch: {
-    // Keep localSearchQuery in sync with searchQuery when it changes in the parent
-    searchQuery(newQuery) {
-      this.localSearchQuery = newQuery;
+    data() {
+      return {
+        localSearchQuery: this.searchQuery, // local data to manage v-model
+      };
     },
-    // Watch localSearchQuery and emit update when it changes
-    localSearchQuery() {
-      this.$emit("update:searchQuery", this.localSearchQuery);
+    watch: {
+      // Keep localSearchQuery in sync with searchQuery when it changes in the parent
+      searchQuery(newQuery) {
+        this.localSearchQuery = newQuery;
+      },
+      // Watch localSearchQuery and emit update when it changes
+      localSearchQuery() {
+        this.$emit("update:searchQuery", this.localSearchQuery);
+      },
     },
-  },
-  methods: {
-    onSearch() {
-      this.$emit("search", this.localSearchQuery);
+    methods: {
+      onSearch() {
+        this.$emit("search", this.localSearchQuery);
+      },
     },
-  },
-};
+  };
 </script>
-
-<style scoped>
-/* Add any specific styles for AppBar here */
-.navbar-logo {
-  width: 30px; /* Adjust logo size */
-  height: auto;
-}
-</style>
