@@ -1,33 +1,70 @@
 <!-- components/RecentPosts.vue -->
 <template>
-  <div class="container my-3">
-    <h2>Hot</h2>
-    <ul class="list-group mb-4">
-      <li v-for="post in posts" :key="post.objectID" class="list-group-item">
+  <div class="container my-3 border-0">
+    <h3>Most recent</h3>
+    <ul class="list-group mb-4 border-0">
+      <li
+        v-for="(post, index) in posts"
+        :key="post.objectID"
+        class="list-group list-group-flush bg-light border-top px-3 py-1"
+      >
         <div>
-          <div @click="toggleComments(post.objectID)" class="font-weight-bold cursor-pointer">
-            {{ post.title }}
+          <!-- Post enumeration with progressive numbering -->
+          <div class="d-flex align-items-center">
+            <span class="me-2">{{ index + 1 + currentPage * hitsPerPage }}.</span>
+            <div
+              @click="toggleComments(post.objectID)"
+              class="font-weight-bold cursor-pointer post-title"
+            >
+              {{ post.title }}
+            </div>
           </div>
-          <p class="mb-1">by {{ post.author }}</p>
+
+          <!-- Author with Bootstrap user icon and total comment count -->
+          <p class="mb-1" style="font-size: 14px; color: #595858;">
+            <i>
+              <i class="bi bi-person-fill"></i> {{ post.author }} &nbsp;
+              <i class="bi bi-chat-fill"></i> {{ post.commentCount }}
+            </i>
+          </p>
         </div>
 
         <!-- Expandable comments section -->
         <div v-if="expandedPostId === post.objectID" class="mt-3">
           <div v-if="post.comments && post.comments.length > 0">
-            <h5>Comments</h5>
+            <p>Comments</p>
             <ul class="list-group">
-              <li v-for="comment in post.comments" :key="comment.id" class="list-group-item">
-                <p><strong>{{ comment.author }}:</strong> {{ comment.text }}</p>
-                <!-- Recursively render replies -->
-                <div v-if="comment.children && comment.children.length > 0">
-                  <ul class="list-group ml-3">
-                    <li v-for="reply in comment.children" :key="reply.id" class="list-group-item">
-                      <p><strong>{{ reply.author }}:</strong> {{ reply.text }}</p>
+              <!-- Display only the loaded comments, with lazy loading for more comments -->
+              <li
+                v-for="comment in post.comments.slice(0, post.loadedComments)"
+                :key="comment.id"
+                class="list-group-item px-1 py-0 border-0 rounded-0 bg-light border-top"
+              >
+                <p>
+                  <i><i class="bi bi-person-fill"></i> {{ comment.author }}:</i><br />
+                  {{ comment.text }}
+                </p>
+                <!-- Recursively render replies with left margin -->
+                <div v-if="comment.children && comment.children.length > 0" class="ms-3">
+                  <ul class="list-group">
+                    <li
+                      v-for="reply in comment.children"
+                      :key="reply.id"
+                      class="list-group-item px-1 py-0 border-0 rounded-0 bg-light border-top"
+                    >
+                      <p>
+                        <i><i class="bi bi-person-fill"></i> {{ reply.author }}:</i><br />
+                        {{ reply.text }}
+                      </p>
                     </li>
                   </ul>
                 </div>
               </li>
             </ul>
+            <!-- 'Load more' link to fetch more comments -->
+            <div v-if="post.loadedComments < post.comments.length" @click="loadMoreComments(post)">
+              <a href="#" @click.prevent class="text-primary">More</a>
+            </div>
           </div>
           <div v-else>
             <p>No comments available for this post.</p>
@@ -40,10 +77,10 @@
     <nav>
       <ul class="pagination justify-content-center">
         <li class="page-item" :class="{ disabled: currentPage === 0 }">
-          <button class="page-link" @click="changePage(currentPage - 1)">Previous</button>
+          <button class="page-link rounded-0" @click="changePage(currentPage - 1)">&lt;&lt; Previous</button>
         </li>
         <li class="page-item" :class="{ disabled: !hasMore }">
-          <button class="page-link" @click="changePage(currentPage + 1)">Next</button>
+          <button class="page-link rounded-0" @click="changePage(currentPage + 1)">Next &gt;&gt;</button>
         </li>
       </ul>
     </nav>
@@ -51,7 +88,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "axios";
 
 export default {
   props: {
@@ -66,7 +103,7 @@ export default {
       currentPage: 0,
       hitsPerPage: 10,
       hasMore: true,
-      expandedPostId: null,  // To track which post is expanded
+      expandedPostId: null, // To track which post is expanded
     };
   },
   watch: {
@@ -85,40 +122,48 @@ export default {
           `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(this.searchQuery)}&tags=story&page=${this.currentPage}&hitsPerPage=${this.hitsPerPage}`
         );
         this.posts = response.data.hits;
+
+        // Count total comments for each post and add a default for loadedComments
+        await Promise.all(
+          this.posts.map(async (post) => {
+            const details = await axios.get(
+              `https://hn.algolia.com/api/v1/items/${post.objectID}`
+            );
+            post.commentCount = this.countTotalComments(details.data.children);
+            post.comments = this.extractComments(details.data.children);
+            post.loadedComments = 3; // Show only 3 comments initially
+          })
+        );
+
         this.hasMore = response.data.hits.length > 0;
       } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error("Error fetching posts:", error);
       }
+    },
+    countTotalComments(children) {
+      let count = 0;
+      children.forEach((child) => {
+        if (child.type === "comment") {
+          count++;
+          if (child.children && child.children.length > 0) {
+            count += this.countTotalComments(child.children);
+          }
+        }
+      });
+      return count;
     },
     async toggleComments(postId) {
       // If the post is already expanded, collapse it
       if (this.expandedPostId === postId) {
         this.expandedPostId = null;
       } else {
-        // Fetch the comments when the post is clicked
         this.expandedPostId = postId;
-
-        // Find the post from the posts array
-        const post = this.posts.find((post) => post.objectID === postId);
-
-        if (!post.comments) {
-          try {
-            // Fetch post details, including comments
-            const response = await axios.get(`https://hn.algolia.com/api/v1/items/${postId}`);
-            // Here we assume that the children array represents comments, recursively included
-            post.comments = this.extractComments(response.data.children);
-          } catch (error) {
-            console.error('Error fetching comments:', error);
-          }
-        }
       }
     },
-
-    // Recursively extract comments and replies
     extractComments(children) {
       const comments = [];
-      children.forEach(child => {
-        if (child.type === 'comment') {
+      children.forEach((child) => {
+        if (child.type === "comment") {
           const comment = {
             id: child.id,
             author: child.author,
@@ -130,7 +175,9 @@ export default {
       });
       return comments;
     },
-
+    loadMoreComments(post) {
+      post.loadedComments += 3;
+    },
     changePage(page) {
       if (page >= 0 && (page < this.currentPage || this.hasMore)) {
         this.currentPage = page;
@@ -143,3 +190,10 @@ export default {
   },
 };
 </script>
+
+<style>
+.post-title {
+  cursor: pointer;
+  font-weight: bold;
+}
+</style>

@@ -12,7 +12,9 @@
             aria-label="Search"
           />
           <div class="input-group-append">
-            <button class="btn bg-white mx-2" type="submit">Search</button>
+            <button class="btn btn-success mx-2" type="submit">
+              <i class="bi bi-search"></i>
+            </button>
           </div>
         </div>
       </form>

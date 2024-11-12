@@ -9,24 +9,24 @@
 </template>
 
 <script>
-import "@/styles.css";
-import AppBar from "./components/AppBar.vue";
-import RecentPosts from "./components/RecentPosts.vue";
+  import "@/styles.css";
+  import AppBar from "./components/AppBar.vue";
+  import RecentPosts from "./components/RecentPosts.vue";
 
-export default {
-  components: {
-    AppBar,
-    RecentPosts,
-  },
-  data() {
-    return {
-      searchQuery: "",
-    };
-  },
-  methods: {
-    onSearch(query) {
-      this.searchQuery = query;
+  export default {
+    components: {
+      AppBar,
+      RecentPosts,
     },
-  },
-};
+    data() {
+      return {
+        searchQuery: "",
+      };
+    },
+    methods: {
+      onSearch(query) {
+        this.searchQuery = query;
+      },
+    },
+  };
 </script>
