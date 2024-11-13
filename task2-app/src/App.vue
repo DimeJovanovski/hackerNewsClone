@@ -1,4 +1,3 @@
-<!-- App.vue -->
 <template>
   <div id="app">
     <AppBar v-model:searchQuery="searchQuery" @search="onSearch" />

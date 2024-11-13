@@ -1,24 +1,14 @@
-# task2-app
+# Hacker news clone
 
-## Project setup
-```
-npm install
-```
+## Technologies used
+Vue3, HTML, CSS, Bootstrap.  
+API: https://hn.algolia.com/api
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+## Functionalities:
+ * viewing and listing through most recent posts
+ * searching for posts
+ * viewing posts comments
+ * viewing posts content
 
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+## Demo video:
+![Demo video](demo.gif)
